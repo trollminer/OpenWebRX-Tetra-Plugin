@@ -1,4 +1,4 @@
-// TETRA meta panel for OpenWebRX+
+// TETRA meta panel for OpenWebRX+ (English localization)
 // Author: SP8MB
 
 function TetraMetaPanel(el) {
@@ -8,11 +8,11 @@ function TetraMetaPanel(el) {
         '901-9999': 'SR8LST'
     };
     this.callTypeNames = {
-        'individual': 'Indyw.',
-        'group': 'Grupowe',
+        'individual': 'Individual',
+        'group': 'Group',
         'broadcast': 'Broadcast',
-        'acknowledged group': 'Grupa potw.',
-        'other': 'Inne'
+        'acknowledged group': 'Ack. Group',
+        'other': 'Other'
     };
 }
 
@@ -56,23 +56,23 @@ TetraMetaPanel.prototype.update = function(data) {
         if (data.la) {
             el.find('.tetra-la').text(data.la);
         }
-        el.find('.tetra-encrypted').text(data.encrypted ? 'TAK' : 'NIE')
+        el.find('.tetra-encrypted').text(data.encrypted ? 'YES' : 'NO')
             .css('color', data.encrypted ? '#ff6b6b' : '#51cf66');
     }
     else if (type === 'encinfo') {
-        el.find('.tetra-encrypted').text(data.encrypted ? 'TAK (' + data.enc_mode + ')' : 'NIE')
+        el.find('.tetra-encrypted').text(data.encrypted ? 'YES (' + data.enc_mode + ')' : 'NO')
             .css('color', data.encrypted ? '#ff6b6b' : '#51cf66');
     }
     else if (type === 'call_setup') {
         var ctLabel = this.getCallTypeLabel(data.call_type);
-        el.find('.tetra-call-status').text('Zestawienie').css('color', '#ffd43b');
+        el.find('.tetra-call-status').text('Setup').css('color', '#ffd43b');
         el.find('.tetra-call-type').text(ctLabel ? '[' + ctLabel + ']' : '');
         el.find('.tetra-gssi').text(data.ssi || '---');
         el.find('.tetra-issi').text(data.ssi2 || '---');
         el.find('.tetra-call-id').text('CID:' + (data.call_id || ''));
     }
     else if (type === 'call_connect') {
-        el.find('.tetra-call-status').text('Aktywne').css('color', '#51cf66');
+        el.find('.tetra-call-status').text('Active').css('color', '#51cf66');
         if (data.ssi) el.find('.tetra-gssi').text(data.ssi);
         if (data.ssi2) el.find('.tetra-issi').text(data.ssi2);
     }
@@ -94,25 +94,21 @@ TetraMetaPanel.prototype.update = function(data) {
         el.find('.tetra-issi').text(data.ssi2 || '---');
     }
     else if (type === 'resource') {
-        // SSI2 in resource = ISSI of individual subscriber (if available)
         if (data.ssi2) {
             el.find('.tetra-issi').text(data.ssi2);
         }
     }
     else if (type === 'burst') {
-        // AFC
         if (data.afc !== undefined) {
             var afcHz = data.afc;
             var afcColor = Math.abs(afcHz) < 500 ? '#51cf66' : (Math.abs(afcHz) < 1500 ? '#ffd43b' : '#ff6b6b');
             el.find('.tetra-afc').text(afcHz.toFixed(0) + ' Hz').css('color', afcColor);
         }
-        // Burst rate
         if (data.burst_rate !== undefined) {
             var br = data.burst_rate;
             var brColor = br > 40 ? '#51cf66' : (br > 20 ? '#ffd43b' : '#ff6b6b');
             el.find('.tetra-burst-rate').text(br.toFixed(0) + '/s').css('color', brColor);
         }
-        // Timeslots
         if (data.timeslots) {
             el.find('.tetra-ts').removeClass('busy idle');
             for (var tn in data.timeslots) {
@@ -125,7 +121,6 @@ TetraMetaPanel.prototype.update = function(data) {
                 }
             }
         }
-        // Call type from burst (updated periodically)
         if (data.call_type) {
             var ct = this.getCallTypeLabel(data.call_type);
             if (ct && el.find('.tetra-call-status').text() !== 'Idle') {
