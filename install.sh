@@ -15,7 +15,7 @@
 
 set -e
 
-INSTALL_DIR="/opt/openwebrx-tetra"
+INSTALL_DIR="/usr/lib/python3/dist-packages/htdocs/plugins/receiver/tetra"
 OWRX_PYTHON="/usr/lib/python3/dist-packages"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -30,9 +30,9 @@ warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 info()  { echo -e "${CYAN}[INFO]${NC} $1"; }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 # Argument parsing
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 MODE="install"
 NO_RESTART=""
 
@@ -59,15 +59,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 # Prechecks
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 [[ $EUID -ne 0 ]] && error "This script must be run as root (sudo)"
 [[ -f "$OWRX_PYTHON/owrx/modes.py" ]] || error "OpenWebRX+ not found at $OWRX_PYTHON"
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 # Helper: verify installation
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 verify_installation() {
     local errors=0
 
@@ -163,17 +163,17 @@ verify_installation() {
     return $errors
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 # CHECK mode
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 if [[ "$MODE" == "check" ]]; then
     verify_installation
     exit $?
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# UNINSTALL mode
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
+# UNINSTALL mode (fully restored, including frontend)
+# ??????????????????????????????????????????????????????
 if [[ "$MODE" == "uninstall" ]]; then
     log "=== Uninstalling TETRA module ==="
 
@@ -182,101 +182,27 @@ if [[ "$MODE" == "uninstall" ]]; then
     rm -f "$OWRX_PYTHON/csdr/chain/tetra.py"
     log "Removed CSDR modules"
 
-    # Restore backed-up OpenWebRX+ files
-    for f in owrx/modes.py owrx/feature.py owrx/dsp.py; do
-        if [[ -f "$OWRX_PYTHON/$f.bak.pre-tetra" ]]; then
-            cp "$OWRX_PYTHON/$f.bak.pre-tetra" "$OWRX_PYTHON/$f"
+    # Restore ALL backed-up OpenWebRX+ files (including frontend)
+    for f in owrx/modes.py owrx/feature.py owrx/dsp.py \
+             htdocs/index.html htdocs/lib/MetaPanel.js htdocs/css/openwebrx.css; do
+        backup="$OWRX_PYTHON/$f.bak.pre-tetra"
+        if [[ -f "$backup" ]]; then
+            cp "$backup" "$OWRX_PYTHON/$f"
             log "Restored $f from backup"
         else
             warn "No backup for $f - manual cleanup may be needed"
         fi
     done
 
-    # Remove TETRA panel from index.html
-    python3 << 'PYEOF'
-html_file = "/usr/lib/python3/dist-packages/htdocs/index.html"
-with open(html_file, "r") as f:
-    html = f.read()
-
-marker = 'id="openwebrx-panel-metadata-tetra"'
-if marker in html:
-    start = html.find(marker)
-    div_start = html.rfind("<div", 0, start)
-    pos = start
-    depth = 1
-    while depth > 0 and pos < len(html):
-        next_open = html.find("<div", pos + 1)
-        next_close = html.find("</div>", pos + 1)
-        if next_close < 0:
-            break
-        if 0 <= next_open < next_close:
-            depth += 1
-            pos = next_open
-        else:
-            depth -= 1
-            pos = next_close
-    div_end = pos + len("</div>")
-    # Also remove trailing newline
-    if div_end < len(html) and html[div_end] == '\n':
-        div_end += 1
-    html = html[:div_start] + html[div_end:]
-    with open(html_file, "w") as f:
-        f.write(html)
-    print("  Removed TETRA panel from index.html")
-PYEOF
-
-    # Remove TetraMetaPanel from MetaPanel.js
-    python3 << 'PYEOF'
-js_file = "/usr/lib/python3/dist-packages/htdocs/lib/MetaPanel.js"
-with open(js_file, "r") as f:
-    content = f.read()
-
-start = content.find("function TetraMetaPanel(el)")
-if start >= 0:
-    # Find the MetaPanel.types registration
-    types_pos = content.find("MetaPanel.types", start)
-    if types_pos >= 0:
-        content = content[:start] + content[types_pos:]
-    with open(js_file, "w") as f:
-        f.write(content)
-    print("  Removed TetraMetaPanel from MetaPanel.js")
-
-# Remove tetra from MetaPanel.types
-with open(js_file, "r") as f:
-    content = f.read()
-import re
-content = re.sub(r',?\s*"tetra"\s*:\s*TetraMetaPanel', '', content)
-with open(js_file, "w") as f:
-    f.write(content)
-print("  Removed tetra from MetaPanel.types")
-PYEOF
-
-    # Remove TETRA CSS
-    python3 << 'PYEOF'
-import re
-css_file = "/usr/lib/python3/dist-packages/htdocs/css/openwebrx.css"
-with open(css_file, "r") as f:
-    css = f.read()
-# Remove all TETRA-related CSS blocks
-css = re.sub(r'/\*\s*TETRA\s*\*/.*?(?=\n/\*|\Z)', '', css, flags=re.DOTALL)
-css = re.sub(r'\.openwebrx-tetra-panel\s*\{[^}]*\}', '', css)
-css = re.sub(r'\.openwebrx-tetra-panel\s+[^{]*\{[^}]*\}', '', css)
-css = re.sub(r'\.tetra-[a-z-]+[^{]*\{[^}]*\}', '', css)
-css = re.sub(r'\n{3,}', '\n\n', css)
-with open(css_file, "w") as f:
-    f.write(css)
-print("  Removed TETRA CSS styles")
-PYEOF
+    # Remove the entire TETRA plugin directory
+    if [[ -d "$INSTALL_DIR" ]]; then
+        rm -rf "$INSTALL_DIR"
+        log "Removed $INSTALL_DIR"
+    fi
 
     # Clear Python cache
     find "$OWRX_PYTHON" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
     find "$OWRX_PYTHON" -name "*.pyc" -delete 2>/dev/null || true
-
-    # Optionally remove install dir
-    if [[ -d "$INSTALL_DIR" ]]; then
-        info "TETRA binaries remain in $INSTALL_DIR"
-        info "To remove completely: rm -rf $INSTALL_DIR"
-    fi
 
     if [[ -z "$NO_RESTART" ]]; then
         log "Restarting OpenWebRX+..."
@@ -286,22 +212,21 @@ PYEOF
     log "=== TETRA module uninstalled ==="
     exit 0
 fi
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Source file checks
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
+# Source file checks (only for install/update)
+# ??????????????????????????????????????????????????????
 for f in tetra_decoder.py tetra_demod.py csdr_module_tetra.py csdr_chain_tetra.py tetra_panel.js tetra_panel.html; do
     [[ -f "$SCRIPT_DIR/$f" ]] || error "Source file missing: $SCRIPT_DIR/$f"
 done
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 # INSTALL / UPDATE mode
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 
 if [[ "$MODE" == "install" ]]; then
     log "=== TETRA Module Installer for OpenWebRX+ ==="
 
-    # ── Step 1: System dependencies ──
+    # -- Step 1: System dependencies --
     log "Step 1/8: Installing system dependencies..."
     apt-get update -qq
     apt-get install -y -qq \
@@ -316,11 +241,11 @@ if [[ "$MODE" == "install" ]]; then
         2>/dev/null
     log "GNURadio $(python3 -c 'from gnuradio import gr; print(gr.version())' 2>/dev/null || echo '?') installed"
 
-    # ── Step 2: Create install directory ──
+    # -- Step 2: Create install directory --
     log "Step 2/8: Setting up $INSTALL_DIR..."
     mkdir -p "$INSTALL_DIR"
 
-    # ── Step 3: Compile tetra-rx ──
+    # -- Step 3: Compile tetra-rx (osmo-tetra) --
     log "Step 3/8: Compiling tetra-rx (osmo-tetra)..."
     OSMO_TETRA_SRC="$INSTALL_DIR/osmo-tetra-sq5bpf"
 
@@ -339,7 +264,7 @@ if [[ "$MODE" == "install" ]]; then
         error "Failed to clone osmo-tetra"
     fi
 
-    # ── Step 4: Build ETSI ACELP codec ──
+    # -- Step 4: Build ETSI ACELP codec (optional) --
     log "Step 4/8: Building ETSI ACELP codec..."
     CODEC_DIR="$OSMO_TETRA_SRC/etsi_codec-patches"
     if [[ -d "$CODEC_DIR" && -f "$CODEC_DIR/download_and_patch.sh" ]]; then
@@ -370,16 +295,16 @@ else
     log "=== TETRA Module Update ==="
 fi
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 # Steps common to install and update
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ??????????????????????????????????????????????????????
 
 STEP_BASE=5
 [[ "$MODE" == "update" ]] && STEP_BASE=1
 STEP_TOTAL=8
 [[ "$MODE" == "update" ]] && STEP_TOTAL=4
 
-# ── Deploy decoder scripts ──
+# -- Deploy decoder scripts --
 log "Step $STEP_BASE/$STEP_TOTAL: Deploying decoder scripts..."
 mkdir -p "$INSTALL_DIR"
 cp "$SCRIPT_DIR/tetra_decoder.py" "$INSTALL_DIR/"
@@ -387,20 +312,21 @@ cp "$SCRIPT_DIR/tetra_demod.py" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/tetra_decoder.py"
 log "Deployed tetra_decoder.py and tetra_demod.py"
 
-# ── Install CSDR module/chain ──
+# -- Install CSDR module/chain --
 STEP=$((STEP_BASE + 1))
 log "Step $STEP/$STEP_TOTAL: Installing CSDR module..."
 cp "$SCRIPT_DIR/csdr_module_tetra.py" "$OWRX_PYTHON/csdr/module/tetra.py"
 cp "$SCRIPT_DIR/csdr_chain_tetra.py" "$OWRX_PYTHON/csdr/chain/tetra.py"
 log "Installed csdr/module/tetra.py and csdr/chain/tetra.py"
 
-# ── Patch OpenWebRX+ (modes.py, feature.py, dsp.py) ──
+# -- Patch OpenWebRX+ (modes.py, feature.py, dsp.py) --
 STEP=$((STEP_BASE + 2))
 log "Step $STEP/$STEP_TOTAL: Patching OpenWebRX+..."
 
 # Backup originals (only on first install)
 if [[ "$MODE" == "install" ]]; then
-    for f in owrx/modes.py owrx/feature.py owrx/dsp.py htdocs/index.html htdocs/lib/MetaPanel.js htdocs/css/openwebrx.css; do
+    for f in owrx/modes.py owrx/feature.py owrx/dsp.py \
+             htdocs/index.html htdocs/lib/MetaPanel.js htdocs/css/openwebrx.css; do
         if [[ -f "$OWRX_PYTHON/$f" && ! -f "$OWRX_PYTHON/$f.bak.pre-tetra" ]]; then
             cp "$OWRX_PYTHON/$f" "$OWRX_PYTHON/$f.bak.pre-tetra"
         fi
@@ -408,7 +334,9 @@ if [[ "$MODE" == "install" ]]; then
     log "  Backups created (.bak.pre-tetra)"
 fi
 
-# --- Patch modes.py ---
+# ----------------------------------------------------------------------
+# Patch modes.py – insert TETRA mode after NXDN with correct indentation
+# ----------------------------------------------------------------------
 if ! grep -q '"tetra"' "$OWRX_PYTHON/owrx/modes.py"; then
     log "  Patching modes.py..."
     python3 << 'PYEOF'
@@ -416,43 +344,41 @@ import re
 
 modes_file = "/usr/lib/python3/dist-packages/owrx/modes.py"
 with open(modes_file, "r") as f:
-    content = f.read()
+    lines = f.readlines()
 
-# Try to add after NXDN mode
-nxdn_pattern = r'(AnalogMode\("nxdn"[^)]+\))'
-match = re.search(nxdn_pattern, content)
-if match:
-    insert_pos = match.end()
-    tetra_mode = ',\n            AnalogMode("tetra", "TETRA", bandpass=Bandpass(-12500, 12500), requirements=["tetra_decoder"], squelch=False)'
-    content = content[:insert_pos] + tetra_mode + content[insert_pos:]
-    with open(modes_file, "w") as f:
-        f.write(content)
-    print("    TETRA mode added after NXDN")
+# Find the line containing AnalogMode("nxdn"
+insert_idx = -1
+indent = ""
+for i, line in enumerate(lines):
+    if 'AnalogMode("nxdn"' in line:
+        insert_idx = i + 1  # insert after this line
+        # Capture the indentation (spaces/tabs) from the nxdn line
+        indent_match = re.match(r'^(\s*)', line)
+        indent = indent_match.group(1) if indent_match else "        "
+        break
+
+if insert_idx == -1:
+    print("    WARNING: Could not find NXDN mode line in modes.py")
 else:
-    # Fallback: add before first DigitalMode
-    digital_pattern = r'(\s+DigitalMode\()'
-    match = re.search(digital_pattern, content)
-    if match:
-        insert_pos = match.start()
-        tetra_mode = '\n            AnalogMode("tetra", "TETRA", bandpass=Bandpass(-12500, 12500), requirements=["tetra_decoder"], squelch=False),\n'
-        content = content[:insert_pos] + tetra_mode + content[insert_pos:]
-        with open(modes_file, "w") as f:
-            f.write(content)
-        print("    TETRA mode added (fallback position)")
-    else:
-        print("    WARNING: Could not find insertion point in modes.py")
+    tetra_line = f'{indent}AnalogMode("tetra", "TETRA", bandpass=Bandpass(-12500, 12500), requirements=["tetra_decoder"], squelch=False),\n'
+    lines.insert(insert_idx, tetra_line)
+    with open(modes_file, "w") as f:
+        f.writelines(lines)
+    print("    TETRA mode added after NXDN")
 PYEOF
 else
     log "  modes.py already patched"
 fi
 
-# --- Patch feature.py ---
+# ----------------------------------------------------------------------
+# Patch feature.py (unchanged, already correct)
+# ----------------------------------------------------------------------
 if ! grep -q 'tetra_decoder' "$OWRX_PYTHON/owrx/feature.py"; then
     log "  Patching feature.py..."
-    python3 << 'PYEOF'
+    python3 << PYEOF
 import re
 
-feature_file = "/usr/lib/python3/dist-packages/owrx/feature.py"
+feature_file = "$OWRX_PYTHON/owrx/feature.py"
 with open(feature_file, "r") as f:
     content = f.read()
 
@@ -464,12 +390,12 @@ if match:
     tetra_feature = ',\n            "tetra_decoder": ["tetra_demod"]'
     content = content[:insert_pos] + tetra_feature + content[insert_pos:]
 
-    # Add has_tetra_demod method
+    # Add has_tetra_demod method with the install directory
     method_code = '''
     def has_tetra_demod(self):
         """Check if TETRA demodulator is available."""
         import os
-        tetra_dir = "/opt/openwebrx-tetra"
+        tetra_dir = "'''"${INSTALL_DIR}"'''"
         has_decoder = os.path.isfile(os.path.join(tetra_dir, "tetra_decoder.py"))
         has_tetra_rx = os.path.isfile(os.path.join(tetra_dir, "tetra-rx"))
         has_gnuradio = False
@@ -500,7 +426,9 @@ else
     log "  feature.py already patched"
 fi
 
-# --- Patch dsp.py ---
+# ----------------------------------------------------------------------
+# Patch dsp.py – insert TETRA routing AFTER the entire NXDN block
+# ----------------------------------------------------------------------
 if ! grep -q '"tetra"' "$OWRX_PYTHON/owrx/dsp.py"; then
     log "  Patching dsp.py..."
     python3 << 'PYEOF'
@@ -508,41 +436,46 @@ import re
 
 dsp_file = "/usr/lib/python3/dist-packages/owrx/dsp.py"
 with open(dsp_file, "r") as f:
-    content = f.read()
+    lines = f.readlines()
 
-# Find the last digital voice elif in _getDemodulator
-patterns = [
-    r'(elif demod == "nxdn":\s*\n\s*from csdr\.chain\.\S+ import \S+\s*\n\s*return \S+\([^)]*\))',
-    r'(elif demod == "ysf":\s*\n\s*from csdr\.chain\.\S+ import \S+\s*\n\s*return \S+\([^)]*\))',
-    r'(elif demod == "dmr":\s*\n\s*from csdr\.chain\.\S+ import \S+\s*\n\s*return \S+\([^)]*\))',
-    r'(elif demod == "dstar":\s*\n\s*from csdr\.chain\.\S+ import \S+\s*\n\s*return \S+\([^)]*\))',
-]
-
-inserted = False
-for pattern in patterns:
-    match = re.search(pattern, content)
-    if match:
-        insert_pos = match.end()
-        tetra_routing = '''
-            elif demod == "tetra":
-                from csdr.chain.tetra import Tetra
-                return Tetra()'''
-        content = content[:insert_pos] + tetra_routing + content[insert_pos:]
-        with open(dsp_file, "w") as f:
-            f.write(content)
-        print("    TETRA routing added to dsp.py")
-        inserted = True
+# Find the line that starts the NXDN block: 'elif demod == "nxdn":'
+nxdn_idx = -1
+for i, line in enumerate(lines):
+    if re.match(r'\s+elif\s+demod\s*==\s*"nxdn":', line):
+        nxdn_idx = i
         break
 
-if not inserted:
-    print("    WARNING: Could not find insertion point in dsp.py")
-    print("    Add manually to _getDemodulator() method")
+if nxdn_idx == -1:
+    print("    WARNING: Could not find NXDN routing in dsp.py")
+else:
+    # Find the end of the NXDN block: a line with the same or less indentation
+    # that is not a continuation (e.g., next elif or return from outer function)
+    base_indent = len(lines[nxdn_idx]) - len(lines[nxdn_idx].lstrip())
+    # Look for the line after the return statement of the nxdn block
+    # The block consists of: the elif line, then two indented lines (from, return)
+    # After that, the next line should have indentation <= base_indent
+    insert_idx = nxdn_idx + 1
+    # Skip the from and return lines (they are more indented)
+    while insert_idx < len(lines) and len(lines[insert_idx]) - len(lines[insert_idx].lstrip()) > base_indent:
+        insert_idx += 1
+    # Now insert_idx points to the line after the NXDN block (likely next elif or a return)
+    
+    # Build the tetra block with same indentation as the nxdn line
+    indent = lines[nxdn_idx][:base_indent]  # preserve exact spaces/tabs
+    tetra_block = f'''{indent}elif demod == "tetra":
+{indent}    from csdr.chain.tetra import Tetra
+{indent}    return Tetra()
+'''
+    lines.insert(insert_idx, tetra_block)
+    with open(dsp_file, "w") as f:
+        f.writelines(lines)
+    print("    TETRA routing added after NXDN block")
 PYEOF
 else
     log "  dsp.py already patched"
 fi
 
-# ── Install frontend (HTML, JS, CSS) ──
+# -- Install frontend (HTML, JS, CSS) --
 STEP=$((STEP_BASE + 3))
 log "Step $STEP/$STEP_TOTAL: Installing frontend panel..."
 
@@ -720,16 +653,16 @@ else:
     print("    Updated TETRA CSS styles")
 PYEOF
 
-# ── Clear cache and restart ──
+# -- Clear cache and restart --
 log "Clearing Python cache..."
 find "$OWRX_PYTHON" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 find "$OWRX_PYTHON" -name "*.pyc" -delete 2>/dev/null || true
 
-# ── Verify ──
+# -- Verify --
 echo ""
 verify_installation
 
-# ── Restart service ──
+# -- Restart service --
 if [[ -z "$NO_RESTART" ]]; then
     echo ""
     log "Restarting OpenWebRX+..."
