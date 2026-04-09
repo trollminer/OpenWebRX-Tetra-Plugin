@@ -1,3 +1,18 @@
+This is my forked version of the Tetra Plugin for Openwebrx. All credit to the original author below -
+
+I have changed Polish to English and updated the install location to the plugins folder in the htdocs. Also, rejigged the installer slightly and removed orphaned files.
+
+To use:
+
+git clone https://github.com/trollminer/OpenWebRX-Tetra-Plugin.git
+
+cd OpenWebRX-Tetra-Plugin
+
+bash install.sh
+
+
+---
+
 # TETRA Decoder Module for OpenWebRX+
 **Author: SP8MB**
 
