@@ -433,7 +433,7 @@ def main():
                     current_tn[0] = tn
 
                 for line in text.split('\n'):
-                    # ACCESS-ASSIGN → timeslot usage
+                    # ACCESS-ASSIGN ? timeslot usage
                     if 'ACCESS-ASSIGN' in line:
                         tn = current_tn[0]
                         if not (1 <= tn <= 4):
@@ -449,7 +449,7 @@ def main():
                                 val = int(m.group(1))
                                 ts_usage[tn] = "assigned" if 1 <= val <= 3 else "unallocated"
 
-                    # Basicinfo → call type (group/individual/etc.)
+                    # Basicinfo ? call type (group/individual/etc.)
                     if 'Basicinfo' in line:
                         m = re_basicinfo.search(line)
                         if m:
