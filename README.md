@@ -10,6 +10,8 @@ cd OpenWebRX-Tetra-Plugin
 
 bash install.sh
 
+This has now been updated to be a self-contained plugin rather than modifying the index.html and openwebrx.css files directly
+
 
 ---
 
