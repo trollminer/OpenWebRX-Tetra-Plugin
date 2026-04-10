@@ -1,18 +1,11 @@
-/*
- * TETRA Meta Panel Plugin for OpenWebRX+
- * Adds TETRA information panel (network, calls, timeslots, AFC, etc.)
- * Based on the DSD-FME plugin pattern.
- */
+// TETRA Meta Panel Plugin for OpenWebRX+ (English version)
+// Adds TETRA information panel (network, calls, timeslots, AFC, etc.)
 
 (function() {
-    // Ensure plugin namespace
     window.Plugins = window.Plugins || {};
     window.Plugins.tetra_panel = window.Plugins.tetra_panel || {};
     const plugin = window.Plugins.tetra_panel;
 
-    // ----------------------------------------------------------------------
-    // Helper: inject the TETRA panel HTML into the DOM (if not already present)
-    // ----------------------------------------------------------------------
     function injectPanel() {
         if (document.getElementById('openwebrx-panel-metadata-tetra')) return;
 
@@ -21,11 +14,11 @@
                 <div class="openwebrx-tetra-panel">
                     <div class="tetra-header">TETRA</div>
                     <div class="tetra-info">
-                        <div class="tetra-row"><span class="tetra-label">Siec:</span> <span class="tetra-network">---</span></div>
+                        <div class="tetra-row"><span class="tetra-label">Network:</span> <span class="tetra-network">---</span></div>
                         <div class="tetra-row"><span class="tetra-label">MCC:</span> <span class="tetra-mcc">---</span> <span class="tetra-label">MNC:</span> <span class="tetra-mnc">---</span> <span class="tetra-label">LA:</span> <span class="tetra-la">---</span></div>
                         <div class="tetra-row"><span class="tetra-label">DL:</span> <span class="tetra-dl-freq">---</span></div>
                         <div class="tetra-row"><span class="tetra-label">UL:</span> <span class="tetra-ul-freq">---</span></div>
-                        <div class="tetra-row"><span class="tetra-label">CC:</span> <span class="tetra-color-code">---</span> <span class="tetra-label">Szyfrowanie:</span> <span class="tetra-encrypted">---</span></div>
+                        <div class="tetra-row"><span class="tetra-label">CC:</span> <span class="tetra-color-code">---</span> <span class="tetra-label">Encryption:</span> <span class="tetra-encrypted">---</span></div>
                     </div>
                     <div class="tetra-signal-info">
                         <div class="tetra-row"><span class="tetra-label">AFC:</span> <span class="tetra-afc">---</span> <span class="tetra-label">Burst/s:</span> <span class="tetra-burst-rate">---</span></div>
@@ -35,7 +28,7 @@
                         <div class="tetra-row"><span class="tetra-label">ISSI:</span> <span class="tetra-issi">---</span> <span class="tetra-label">GSSI:</span> <span class="tetra-gssi">---</span></div>
                     </div>
                     <div class="tetra-timeslots">
-                        <span class="tetra-label">Szczeliny:</span>
+                        <span class="tetra-label">Timeslots:</span>
                         <span class="tetra-ts tetra-ts-1">1</span>
                         <span class="tetra-ts tetra-ts-2">2</span>
                         <span class="tetra-ts tetra-ts-3">3</span>
@@ -45,7 +38,6 @@
             </div>`;
 
         const $panel = $(html);
-        // Insert after the DMR panel (or any existing meta panel)
         const $anchor = $('#openwebrx-panel-metadata-dmr');
         if ($anchor.length) {
             $anchor.after($panel);
@@ -54,9 +46,6 @@
         }
     }
 
-    // ----------------------------------------------------------------------
-    // Helper: ensure CSS is loaded (if not already)
-    // ----------------------------------------------------------------------
     function injectCSS() {
         if (document.querySelector('style[data-tetra-panel]')) return;
         const style = document.createElement('style');
@@ -74,9 +63,6 @@
         document.head.appendChild(style);
     }
 
-    // ----------------------------------------------------------------------
-    // Patch panel visibility (force show when TETRA mode is active)
-    // ----------------------------------------------------------------------
     function patchPanelVisibility() {
         if (typeof DemodulatorPanel === 'undefined' ||
             !DemodulatorPanel.prototype ||
@@ -105,20 +91,19 @@
         return true;
     }
 
-    // ----------------------------------------------------------------------
-    // TetraMetaPanel class (your original, slightly adapted)
-    // ----------------------------------------------------------------------
     class TetraMetaPanel extends MetaPanel {
         constructor(el) {
             super(el);
             this.modes = ['TETRA'];
-            this.networkNames = { '901-9999': 'SR8LST' };
+            this.networkNames = {
+                '901-9999': 'SR8LST'
+            };
             this.callTypeNames = {
-                'individual': 'Indyw.',
-                'group': 'Grupowe',
+                'individual': 'Individual',
+                'group': 'Group',
                 'broadcast': 'Broadcast',
-                'acknowledged group': 'Grupa potw.',
-                'other': 'Inne'
+                'acknowledged group': 'Ack group',
+                'other': 'Other'
             };
         }
 
@@ -150,23 +135,23 @@
                 if (data.ul_freq) el.find('.tetra-ul-freq').text((data.ul_freq / 1e6).toFixed(4) + ' MHz');
                 if (data.color_code !== undefined) el.find('.tetra-color-code').text(data.color_code);
                 if (data.la) el.find('.tetra-la').text(data.la);
-                el.find('.tetra-encrypted').text(data.encrypted ? 'TAK' : 'NIE')
+                el.find('.tetra-encrypted').text(data.encrypted ? 'YES' : 'NO')
                     .css('color', data.encrypted ? '#ff6b6b' : '#51cf66');
             }
             else if (type === 'encinfo') {
-                el.find('.tetra-encrypted').text(data.encrypted ? 'TAK (' + data.enc_mode + ')' : 'NIE')
+                el.find('.tetra-encrypted').text(data.encrypted ? 'YES (' + data.enc_mode + ')' : 'NO')
                     .css('color', data.encrypted ? '#ff6b6b' : '#51cf66');
             }
             else if (type === 'call_setup') {
                 let ctLabel = this.getCallTypeLabel(data.call_type);
-                el.find('.tetra-call-status').text('Zestawienie').css('color', '#ffd43b');
+                el.find('.tetra-call-status').text('Setup').css('color', '#ffd43b');
                 el.find('.tetra-call-type').text(ctLabel ? '[' + ctLabel + ']' : '');
                 el.find('.tetra-gssi').text(data.ssi || '---');
                 el.find('.tetra-issi').text(data.ssi2 || '---');
                 el.find('.tetra-call-id').text('CID:' + (data.call_id || ''));
             }
             else if (type === 'call_connect') {
-                el.find('.tetra-call-status').text('Aktywne').css('color', '#51cf66');
+                el.find('.tetra-call-status').text('Active').css('color', '#51cf66');
                 if (data.ssi) el.find('.tetra-gssi').text(data.ssi);
                 if (data.ssi2) el.find('.tetra-issi').text(data.ssi2);
             }
@@ -235,9 +220,6 @@
         }
     }
 
-    // ----------------------------------------------------------------------
-    // Plugin initialisation (called by the loader)
-    // ----------------------------------------------------------------------
     plugin.init = function() {
         if (window.__tetraPanelInitialized) return true;
         if (typeof $ === 'undefined' || typeof MetaPanel === 'undefined') {
@@ -246,11 +228,8 @@
         }
         window.__tetraPanelInitialized = true;
 
-        // Inject HTML and CSS
         injectPanel();
         injectCSS();
-
-        // Patch visibility (so panel shows when TETRA mode is active)
         if (!patchPanelVisibility()) {
             let tries = 0;
             const timer = setInterval(() => {
@@ -258,22 +237,14 @@
                 if (patchPanelVisibility() || tries > 30) clearInterval(timer);
             }, 100);
         }
-
-        // Register the panel class for the "tetra" mode
         MetaPanel.types.tetra = TetraMetaPanel;
-
-        // Initialize the panel on the existing DOM element (if any)
         $('#openwebrx-panel-metadata-tetra').removeData('metapanel').metaPanel();
-
-        // Force a refresh of the current demodulator panel
         if (typeof UI !== 'undefined' && UI.getDemodulatorPanel && UI.getDemodulatorPanel()) {
             UI.getDemodulatorPanel().updatePanels();
         }
-
-        console.log('TETRA panel plugin loaded and registered');
+        console.log('TETRA panel plugin (English) loaded and registered');
         return true;
     };
 
-    // Also expose a global init function for compatibility
     window.TETRA_PANEL_INIT = plugin.init;
 })();
