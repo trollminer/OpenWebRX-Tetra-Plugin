@@ -4,7 +4,7 @@ I have changed Polish to English and updated the install location to the plugins
 
 To use:
 
-git clone https://github.com/trollminer/OpenWebRX-Tetra-Plugin.git
+To pull this branch - git clone --branch owrx-plugin --single-branch https://github.com/trollminer/OpenWebRX-Tetra-Plugin.git
 
 cd OpenWebRX-Tetra-Plugin
 
