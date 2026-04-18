@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 class Tetra(BaseDemodulatorChain, FixedIfSampleRateChain, FixedAudioRateChain, MetaProvider):
     """TETRA voice demodulator chain for OpenWebRX+."""
 
-    def __init__(self, tetra_dir: str = '/usr/lib/python3/dist-packages/htdocs/plugins/receiver/tetra'):
-        from csdr.module.tetra import TetraDecoderModule
+def __init__(self, tetra_dir: str = "TETRA_DIR_PLACEHOLDER")
+    from csdr.module.tetra import TetraDecoderModule
         self.decoder = TetraDecoderModule(tetra_dir)
         workers = [self.decoder]
         self.metaParser = None
