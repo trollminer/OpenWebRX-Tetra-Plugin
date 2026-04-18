@@ -33,7 +33,7 @@ class TetraDecoderModule(PopenModule):
     and forwarded to the meta writer for display in the frontend panel.
     """
 
-    def __init__(self, tetra_dir: str = "/usr/lib/python3/dist-packages/htdocs/plugins/receiver/tetra"):
+    def __init__(self, tetra_dir: str = "TETRA_DIR_PLACEHOLDER"):
         self.tetra_dir = tetra_dir
         self.metaWriter = None
         self.metaThread = None
